@@ -155,8 +155,9 @@ var API_URL = "https://script.google.com/macros/s/AKfycbzHpUnj_bU6GjPkcfGL5oNx11
         <button class="scanClose" onclick="stopScan()">스캔 닫기</button>
       </div>
       <div style="margin-top:10px">
-        <input type="text" id="barcode" placeholder="또는 바코드 번호 직접 입력 (예: BC10001)" oninput="matchDevice()">
+        <input type="text" id="barcode" placeholder="또는 바코드 번호 직접 입력 (예: BC10001)" oninput="hideQrLink();matchDevice()">
       </div>
+      <div class="deviceChip" id="linkChip"></div>
       <div class="deviceChip" id="deviceChip"></div>
       <div id="manualDevice" style="display:none;margin-top:10px">
         <label>기기명 직접 입력</label>
@@ -232,7 +233,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycbzHpUnj_bU6GjPkcfGL5oNx11
 var STATUSES = ['접수대기','부품대기','수리중','수리완료'];
 var SKEY = {'접수대기':'대기','부품대기':'부품','수리중':'수리','수리완료':'완료'};
 var equipment = [], repairs = [], filterNow = '전체';
-var photoBase64 = null, scanner = null;
+var photoBase64 = null, scanner = null, qrLink = '';
 
 function api(){ return API_URL || localStorage.getItem('repair_api_url') || ''; }
 
@@ -281,6 +282,7 @@ function renderList(){
       + '<div class="itemTop"><b>'+esc(r['기기명']||'기기명 미상')+'</b><span class="badge b'+k+'">'+r['진행상태']+'</span></div>'
       + '<div class="meta">'+esc(r['접수번호'])+' · '+esc(r['접수시간'])+' · '+esc(r['요청자']||'-')+loc+'</div>'
       + (r['고장증상']?'<div class="symptom">'+esc(r['고장증상'])+'</div>':'')
+      + (r['원본링크']?'<div class="meta" style="margin-top:8px">🔗 <a href="'+esc(r['원본링크'])+'" target="_blank" rel="noopener">장비 정보 페이지 열기</a></div>':'')
       + (r['사진']?'<img src="'+esc(r['사진'])+'" loading="lazy" onclick="bigPhoto(this.src)" alt="고장 사진">':'')
       + '<div class="statusSel"><select onchange="changeStatus(\''+esc(r['접수번호'])+'\',this)">'
       + STATUSES.map(function(s){return '<option '+(s===r['진행상태']?'selected':'')+'>'+s+'</option>'}).join('')
@@ -335,10 +337,27 @@ function toggleScan(){
       },
       videoConstraints: { facingMode:'environment', width:{ideal:1280}, height:{ideal:720} }
     },
-    function(text){ document.getElementById('barcode').value=extractCode(text); matchDevice(); stopScan(); toast('바코드 인식 완료!'); },
+    function(text){
+      var raw = String(text).trim();
+      var code = extractCode(raw);
+      document.getElementById('barcode').value = code;
+      showQrLink(raw, code);
+      matchDevice(); stopScan(); toast('바코드 인식 완료!');
+    },
     function(){}
   ).catch(function(){ toast('카메라를 열 수 없어요. 권한을 허용해주세요.'); box.style.display='none'; });
 }
+
+/* QR 원본 링크 보여주기 (코드와 링크가 다를 때만) */
+function showQrLink(raw, code){
+  var chip = document.getElementById('linkChip');
+  if(raw !== code && raw.indexOf('http')===0){
+    qrLink = raw;
+    chip.innerHTML = '🔗 <b>QR 원본 링크</b> <span style="word-break:break-all"><a href="'+esc(raw)+'" target="_blank" rel="noopener">'+esc(raw)+'</a></span>';
+    chip.style.display='block';
+  } else { qrLink=''; chip.style.display='none'; }
+}
+function hideQrLink(){ qrLink=''; document.getElementById('linkChip').style.display='none'; }
 
 /* QR 안이 링크 주소일 때, = 뒤의 장비코드만 골라내기
    예) https://guro.kumc.or.kr/kr/qrCode.do?equpId=EFC0046  →  EFC0046 */
@@ -409,13 +428,13 @@ function submitRepair(){
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span>접수 중...';
   localStorage.setItem('repair_requester', requester);
 
-  post({action:'create', barcode:code, device:device, symptom:symptom, requester:requester, photo:photoBase64})
+  post({action:'create', barcode:code, device:device, symptom:symptom, requester:requester, photo:photoBase64, link:qrLink})
   .then(function(d){
     btn.disabled=false; btn.textContent='수리 접수하기';
     if(d.ok){
       toast('접수 완료! ('+d.id+')');
       document.getElementById('barcode').value=''; document.getElementById('deviceInput').value='';
-      document.getElementById('symptom').value=''; clearPhoto(); matchDevice();
+      document.getElementById('symptom').value=''; clearPhoto(); hideQrLink(); matchDevice();
       loadData(false); showPage('List');
     } else toast('접수 실패: '+(d.error||'다시 시도해주세요'));
   });
