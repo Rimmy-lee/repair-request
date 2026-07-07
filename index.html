@@ -335,9 +335,23 @@ function toggleScan(){
       },
       videoConstraints: { facingMode:'environment', width:{ideal:1280}, height:{ideal:720} }
     },
-    function(text){ document.getElementById('barcode').value=text; matchDevice(); stopScan(); toast('바코드 인식 완료!'); },
+    function(text){ document.getElementById('barcode').value=extractCode(text); matchDevice(); stopScan(); toast('바코드 인식 완료!'); },
     function(){}
   ).catch(function(){ toast('카메라를 열 수 없어요. 권한을 허용해주세요.'); box.style.display='none'; });
+}
+
+/* QR 안이 링크 주소일 때, = 뒤의 장비코드만 골라내기
+   예) https://guro.kumc.or.kr/kr/qrCode.do?equpId=EFC0046  →  EFC0046 */
+function extractCode(text){
+  var t = String(text).trim();
+  var m = t.match(/[?&]equpId=([^&\s]+)/i);        // equpId=코드 형태 찾기
+  if(m) return decodeURIComponent(m[1]);
+  if(t.indexOf('http')===0 && t.indexOf('=')>-1){  // 다른 형태의 링크면 ? 뒤 첫 번째 값을 사용
+    var q = (t.split('?')[1]||'').split('&')[0];
+    if(q.indexOf('=')>-1) return decodeURIComponent(q.split('=')[1]);
+    return t.substring(t.lastIndexOf('=')+1);
+  }
+  return t;                                        // 링크가 아니면 그대로 사용
 }
 function stopScan(){
   document.getElementById('scanBox').style.display='none';
