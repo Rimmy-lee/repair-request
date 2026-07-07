@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>의료기기 수리접수</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#33506E">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="수리접수">
 
 <script>
 /* ═══════════════════════════════════════════════════════════
@@ -12,7 +20,7 @@
    아래 따옴표 안에 붙여넣어 주세요.
    예) var API_URL = "https://script.google.com/macros/s/AKfy.../exec";
 ═══════════════════════════════════════════════════════════ */
-var API_URL = "https://script.google.com/macros/s/AKfycbzHpUnj_bU6GjPkcfGL5oNx11ASk7wXHcd4Rc4CtohDqBmlkt5rNZRP6o6e8FhjD0bE4w/exec";
+var API_URL = "https://script.google.com/macros/s/AKfycbwIeXSyIRWk00iVxMnBKlH1DE7vjt2slPPfw4KWMaKOvYGjgFOwWnWQm2jdXaZzg1719Q/exec";
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
@@ -45,7 +53,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycbzHpUnj_bU6GjPkcfGL5oNx11
   .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
   label{display:block;font-size:13px;font-weight:700;margin-bottom:7px;color:var(--ink)}
   label .opt{font-weight:400;color:var(--sub);font-size:12px}
-  input[type=text],textarea,select{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px;font-size:15px;font-family:inherit;background:#fff;color:var(--ink)}
+  input[type=text],input[type=search],textarea,select{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px;font-size:15px;font-family:inherit;background:#fff;color:var(--ink);-webkit-appearance:none}
   input:focus,textarea:focus,select:focus{outline:none;border-color:var(--steel)}
   textarea{min-height:96px;resize:vertical}
   .row{display:flex;gap:8px}
@@ -85,10 +93,11 @@ var API_URL = "https://script.google.com/macros/s/AKfycbzHpUnj_bU6GjPkcfGL5oNx11
   .item{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;border-left:4px solid var(--border)}
   .item.s대기{border-left-color:var(--wait)} .item.s부품{border-left-color:var(--part)}
   .item.s수리{border-left-color:var(--doing)} .item.s완료{border-left-color:var(--done)}
+  .item.s수령{border-left-color:#8B95A5}
   .itemTop{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
   .itemTop b{font-size:15.5px;letter-spacing:-.2px}
   .badge{flex:0 0 auto;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:12px;color:#fff}
-  .b대기{background:var(--wait)} .b부품{background:var(--part)} .b수리{background:var(--doing)} .b완료{background:var(--done)}
+  .b대기{background:var(--wait)} .b부품{background:var(--part)} .b수리{background:var(--doing)} .b완료{background:var(--done)} .b수령{background:#8B95A5}
   .meta{font-size:12px;color:var(--sub);margin-top:4px}
   .symptom{font-size:14px;margin-top:8px;line-height:1.5;white-space:pre-wrap}
   .item img{width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-top:10px;cursor:pointer}
@@ -118,11 +127,11 @@ var API_URL = "https://script.google.com/macros/s/AKfycbzHpUnj_bU6GjPkcfGL5oNx11
   #toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(30,40,55,.92);color:#fff;padding:11px 20px;border-radius:22px;font-size:14px;z-index:200;display:none;white-space:nowrap}
 
   /* 최초 설정 안내 */
-  #setupOverlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:150;padding:36px 22px;overflow-y:auto}
-  #setupOverlay h2{font-size:19px;color:var(--navy);margin-bottom:12px}
-  #setupOverlay p{font-size:14.5px;line-height:1.7;color:var(--ink);margin-bottom:14px}
-  #setupOverlay input{margin-bottom:10px}
-  #setupOverlay button{width:100%;background:var(--navy);color:#fff;border:none;border-radius:11px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  #setupOverlay,#keyOverlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:150;padding:36px 22px;overflow-y:auto}
+  #setupOverlay h2,#keyOverlay h2{font-size:19px;color:var(--navy);margin-bottom:12px}
+  #setupOverlay p,#keyOverlay p{font-size:14.5px;line-height:1.7;color:var(--ink);margin-bottom:14px}
+  #setupOverlay input,#keyOverlay input{margin-bottom:10px}
+  #setupOverlay button,#keyOverlay button{width:100%;background:var(--navy);color:#fff;border:none;border-radius:11px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
 
   #photoModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;align-items:center;justify-content:center;padding:16px}
   #photoModal.on{display:flex}
@@ -136,7 +145,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycbzHpUnj_bU6GjPkcfGL5oNx11
 <body>
 
 <header>
-  <h1>의료기기 수리접수<small>간호동 · 의공실 진행관리</small></h1>
+  <h1>의료기기 수리접수<small>간호부 · 의공실 진행관리</small></h1>
   <button class="gear" onclick="openSettings()" aria-label="설정">⚙</button>
 </header>
 
@@ -191,6 +200,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycbzHpUnj_bU6GjPkcfGL5oNx11
 
   <!-- ───────── 수리현황 ───────── -->
   <section class="page" id="pageList">
+    <input type="search" id="searchInput" placeholder="🔍 기기명, 요청자, 접수번호, 증상 검색" oninput="renderList()" style="margin-bottom:10px">
     <button class="refreshBtn" onclick="loadData(true)">↻ 새로고침</button>
     <div class="filters" id="filters"></div>
     <div id="list"></div>
@@ -217,6 +227,14 @@ var API_URL = "https://script.google.com/macros/s/AKfycbzHpUnj_bU6GjPkcfGL5oNx11
 <!-- 사진 크게 보기 -->
 <div id="photoModal" onclick="this.classList.remove('on')"><img id="photoModalImg" alt="사진 크게 보기"></div>
 
+<!-- 접속코드 입력 화면 -->
+<div id="keyOverlay">
+  <h2>🔒 접속코드를 입력하세요</h2>
+  <p>이 앱은 병원 내부 직원만 사용할 수 있도록 보호되어 있어요.<br>담당자에게 안내받은 접속코드를 입력해주세요.</p>
+  <input type="text" id="keyInput" placeholder="접속코드" autocomplete="off">
+  <button onclick="saveKey()">확인</button>
+</div>
+
 <!-- 최초 연결 안내 -->
 <div id="setupOverlay">
   <h2>구글 시트와 연결해 주세요</h2>
@@ -230,8 +248,8 @@ var API_URL = "https://script.google.com/macros/s/AKfycbzHpUnj_bU6GjPkcfGL5oNx11
 
 <script>
 /* ─────────── 기본 상태 ─────────── */
-var STATUSES = ['접수대기','부품대기','수리중','수리완료'];
-var SKEY = {'접수대기':'대기','부품대기':'부품','수리중':'수리','수리완료':'완료'};
+var STATUSES = ['접수대기','부품대기','수리중','수리완료','수령'];
+var SKEY = {'접수대기':'대기','부품대기':'부품','수리중':'수리','수리완료':'완료','수령':'수령'};
 var equipment = [], repairs = [], filterNow = '전체';
 var photoBase64 = null, scanner = null, qrLink = '';
 
@@ -250,7 +268,8 @@ function showPage(name){
 function loadData(showMsg){
   if(!api()) return;
   if(showMsg) toast('불러오는 중...');
-  fetch(api()).then(function(r){return r.json()}).then(function(d){
+  fetch(api()+'?key='+encodeURIComponent(getKey())).then(function(r){return r.json()}).then(function(d){
+    if(d && d.authError){ authFail(); return; }
     if(!d.ok) throw new Error(d.error||'');
     equipment = d.equipment||[];
     repairs = (d.repairs||[]).reverse(); // 최신순
@@ -272,7 +291,18 @@ function renderList(){
   }).join('');
 
   var rows = filterNow==='전체' ? repairs : repairs.filter(function(r){return r['진행상태']===filterNow});
-  if(rows.length===0){ l.innerHTML = '<div class="empty">표시할 접수 내역이 없어요</div>'; return; }
+
+  // 검색어로 걸러내기
+  var q = (document.getElementById('searchInput').value||'').trim().toLowerCase();
+  if(q){
+    rows = rows.filter(function(r){
+      return ['기기명','바코드','접수번호','요청자','고장증상','수령자'].some(function(k){
+        return String(r[k]||'').toLowerCase().indexOf(q) > -1;
+      });
+    });
+  }
+
+  if(rows.length===0){ l.innerHTML = '<div class="empty">'+(q?'검색 결과가 없어요':'표시할 접수 내역이 없어요')+'</div>'; return; }
 
   l.innerHTML = rows.map(function(r){
     var k = SKEY[r['진행상태']]||'대기';
@@ -283,6 +313,7 @@ function renderList(){
       + '<div class="meta">'+esc(r['접수번호'])+' · '+esc(r['접수시간'])+' · '+esc(r['요청자']||'-')+loc+'</div>'
       + (r['고장증상']?'<div class="symptom">'+esc(r['고장증상'])+'</div>':'')
       + (r['원본링크']?'<div class="meta" style="margin-top:8px">🔗 <a href="'+esc(r['원본링크'])+'" target="_blank" rel="noopener">장비 정보 페이지 열기</a></div>':'')
+      + (r['수령자']?'<div class="meta" style="margin-top:6px">✅ 수령: '+esc(r['수령자'])+(r['수령시간']?' ('+esc(r['수령시간'])+')':'')+'</div>':'')
       + (r['사진']?'<img src="'+esc(r['사진'])+'" loading="lazy" onclick="bigPhoto(this.src)" alt="고장 사진">':'')
       + '<div class="statusSel"><select onchange="changeStatus(\''+esc(r['접수번호'])+'\',this)">'
       + STATUSES.map(function(s){return '<option '+(s===r['진행상태']?'selected':'')+'>'+s+'</option>'}).join('')
@@ -295,13 +326,18 @@ function bigPhoto(src){ document.getElementById('photoModalImg').src=src; docume
 /* ─────────── 진행상태 변경 ─────────── */
 function changeStatus(id, sel){
   var v = sel.value;
+  var receiver = '';
+  if(v === '수령'){
+    receiver = (window.prompt('찾아가시는 분의 이름을 적어주세요 (예: 71병동 김OO)') || '').trim();
+    if(!receiver){ toast('이름을 입력해야 수령 처리가 돼요'); renderList(); return; }
+  }
   sel.disabled = true;
-  post({action:'status', id:id, status:v}).then(function(d){
+  post({action:'status', id:id, status:v, receiver:receiver}).then(function(d){
     sel.disabled = false;
     if(d.ok){
       var r = repairs.find(function(x){return x['접수번호']===id});
-      if(r) r['진행상태']=v;
-      renderList(); toast('"'+v+'" 상태로 변경했어요');
+      if(r){ r['진행상태']=v; if(v==='수령') r['수령자']=receiver; }
+      renderList(); toast(v==='수령' ? receiver+'님 수령 처리했어요' : '"'+v+'" 상태로 변경했어요');
     } else { toast('변경 실패: '+(d.error||'')); loadData(false); }
   });
 }
@@ -378,6 +414,7 @@ function stopScan(){
 }
 
 /* ─────────── 바코드 → 기기명 자동 매칭 ─────────── */
+var lookingUp = false;
 function matchDevice(){
   var code = document.getElementById('barcode').value.trim();
   var chip = document.getElementById('deviceChip');
@@ -387,7 +424,23 @@ function matchDevice(){
   if(eq){
     chip.innerHTML = '✔ <b>'+esc(eq['기기명'])+'</b><span>'+(eq['설치위치']?'설치위치: '+esc(eq['설치위치']):'')+'</span>';
     chip.style.display='block'; manual.style.display='none';
-  } else {
+  } else if(qrLink && !lookingUp){
+    // 장비목록에 없으면 QR 페이지에서 품명을 자동으로 찾아오기
+    lookingUp = true;
+    chip.innerHTML = '🔍 장비 페이지에서 품명을 찾는 중이에요...';
+    chip.style.display='block'; manual.style.display='none';
+    post({action:'lookup', url:qrLink, code:code}).then(function(d){
+      lookingUp = false;
+      if(d.ok && d.name){
+        equipment.push({'바코드':code, '기기명':d.name, '설치위치':''});
+        matchDevice();
+        toast('품명을 자동으로 찾아서 장비목록에 저장했어요!');
+      } else {
+        chip.innerHTML = '품명을 자동으로 찾지 못했어요. 아래에 기기명을 직접 적어주세요.';
+        chip.style.display='block'; manual.style.display='block';
+      }
+    });
+  } else if(!lookingUp){
     chip.innerHTML = '이 바코드는 장비목록에 없어요. 아래에 기기명을 직접 적어주세요.';
     chip.style.display='block'; manual.style.display='block';
   }
@@ -450,10 +503,29 @@ function toggleAlarm(on){
 function openSettings(){ document.getElementById('settingsModal').classList.add('on'); }
 function closeSettings(){ document.getElementById('settingsModal').classList.remove('on'); }
 
+/* ─────────── 접속코드 ─────────── */
+function getKey(){ return localStorage.getItem('repair_key')||''; }
+function showKeyOverlay(){ document.getElementById('keyOverlay').style.display='block'; }
+function saveKey(){
+  var k = document.getElementById('keyInput').value.trim();
+  if(!k){ toast('접속코드를 입력해주세요'); return; }
+  localStorage.setItem('repair_key', k);
+  document.getElementById('keyOverlay').style.display='none';
+  document.getElementById('keyInput').value='';
+  loadData(true);
+}
+function authFail(){
+  localStorage.removeItem('repair_key');
+  showKeyOverlay();
+  toast('접속코드가 올바르지 않아요');
+}
+
 /* ─────────── 공통 ─────────── */
 function post(body){
+  body.key = getKey();
   return fetch(api(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(body)})
     .then(function(r){return r.json()})
+    .then(function(d){ if(d && d.authError) authFail(); return d; })
     .catch(function(){ toast('연결에 실패했어요. 인터넷을 확인해주세요.'); return {ok:false}; });
 }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -472,9 +544,11 @@ function saveSetupUrl(){
 
 /* ─────────── 시작 ─────────── */
 (function init(){
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
   var saved = localStorage.getItem('repair_requester');
   if(saved) document.getElementById('requester').value = saved;
   if(!api()){ document.getElementById('setupOverlay').style.display='block'; return; }
+  if(!getKey()){ showKeyOverlay(); return; }
   loadData(false);
 })();
 </script>
