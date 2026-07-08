@@ -414,12 +414,17 @@ function stopScan(){
 }
 
 /* ─────────── 바코드 → 기기명 자동 매칭 (장비목록 시트 기준) ─────────── */
+/* 대문자/소문자 상관없이 장비 찾기 */
+function findEquip(code){
+  var c = String(code||'').trim().toUpperCase();
+  return equipment.find(function(e){ return String(e['바코드']||'').trim().toUpperCase() === c; });
+}
 function matchDevice(){
   var code = document.getElementById('barcode').value.trim();
   var chip = document.getElementById('deviceChip');
   var manual = document.getElementById('manualDevice');
   if(!code){ chip.style.display='none'; manual.style.display='none'; return; }
-  var eq = equipment.find(function(e){return e['바코드']===code});
+  var eq = findEquip(code);
   if(eq){
     chip.innerHTML = '✔ <b>'+esc(eq['기기명'])+'</b><span>'+(eq['설치위치']?'설치위치: '+esc(eq['설치위치']):'')+'</span>';
     chip.style.display='block'; manual.style.display='none';
@@ -451,7 +456,8 @@ function clearPhoto(){ photoBase64=null; document.getElementById('photoPreview')
 /* ─────────── 접수하기 ─────────── */
 function submitRepair(){
   var code = document.getElementById('barcode').value.trim();
-  var eq = equipment.find(function(e){return e['바코드']===code});
+  var eq = findEquip(code);
+  if(eq) code = eq['바코드']; // 목록에 있는 정확한 코드(대문자)로 통일해서 저장
   var device = eq ? eq['기기명'] : document.getElementById('deviceInput').value.trim();
   var symptom = document.getElementById('symptom').value.trim();
   var requester = document.getElementById('requester').value.trim();
