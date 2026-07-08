@@ -413,8 +413,7 @@ function stopScan(){
   if(scanner){ scanner.stop().then(function(){scanner.clear();scanner=null;}).catch(function(){scanner=null;}); }
 }
 
-/* ─────────── 바코드 → 기기명 자동 매칭 ─────────── */
-var lookingUp = false;
+/* ─────────── 바코드 → 기기명 자동 매칭 (장비목록 시트 기준) ─────────── */
 function matchDevice(){
   var code = document.getElementById('barcode').value.trim();
   var chip = document.getElementById('deviceChip');
@@ -424,24 +423,8 @@ function matchDevice(){
   if(eq){
     chip.innerHTML = '✔ <b>'+esc(eq['기기명'])+'</b><span>'+(eq['설치위치']?'설치위치: '+esc(eq['설치위치']):'')+'</span>';
     chip.style.display='block'; manual.style.display='none';
-  } else if(qrLink && !lookingUp){
-    // 장비목록에 없으면 QR 페이지에서 품명을 자동으로 찾아오기
-    lookingUp = true;
-    chip.innerHTML = '🔍 장비 페이지에서 품명을 찾는 중이에요...';
-    chip.style.display='block'; manual.style.display='none';
-    post({action:'lookup', url:qrLink, code:code}).then(function(d){
-      lookingUp = false;
-      if(d.ok && d.name){
-        equipment.push({'바코드':code, '기기명':d.name, '설치위치':''});
-        matchDevice();
-        toast('품명을 자동으로 찾아서 장비목록에 저장했어요!');
-      } else {
-        chip.innerHTML = '품명을 자동으로 찾지 못했어요. 아래에 기기명을 직접 적어주세요.';
-        chip.style.display='block'; manual.style.display='block';
-      }
-    });
-  } else if(!lookingUp){
-    chip.innerHTML = '이 바코드는 장비목록에 없어요. 아래에 기기명을 직접 적어주세요.';
+  } else {
+    chip.innerHTML = '이 바코드는 장비목록에 없어요. 아래에 기기명을 직접 적어주세요.<span>정확한 이름 등록은 의공실에서 장비목록 시트에 추가해요.</span>';
     chip.style.display='block'; manual.style.display='block';
   }
 }
