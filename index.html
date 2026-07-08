@@ -93,11 +93,13 @@ var API_URL = "https://script.google.com/macros/s/AKfycbwIeXSyIRWk00iVxMnBKlH1DE
   .item{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;border-left:4px solid var(--border)}
   .item.s대기{border-left-color:var(--wait)} .item.s부품{border-left-color:var(--part)}
   .item.s수리{border-left-color:var(--doing)} .item.s완료{border-left-color:var(--done)}
-  .item.s수령{border-left-color:#8B95A5}
+  .item.s내부{border-left-color:var(--doing)} .item.s외부{border-left-color:#5AA0A0}
+  .item.s수령{border-left-color:#8B95A5} .item.s폐기{border-left-color:#3A3A3A}
   .itemTop{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
   .itemTop b{font-size:15.5px;letter-spacing:-.2px}
   .badge{flex:0 0 auto;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:12px;color:#fff}
   .b대기{background:var(--wait)} .b부품{background:var(--part)} .b수리{background:var(--doing)} .b완료{background:var(--done)} .b수령{background:#8B95A5}
+  .b내부{background:var(--doing)} .b외부{background:#5AA0A0} .b폐기{background:#3A3A3A}
   .meta{font-size:12px;color:var(--sub);margin-top:4px}
   .symptom{font-size:14px;margin-top:8px;line-height:1.5;white-space:pre-wrap}
   .item img{width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-top:10px;cursor:pointer}
@@ -193,7 +195,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycbwIeXSyIRWk00iVxMnBKlH1DE
 
     <div class="card">
       <label>④ 요청자</label>
-      <input type="text" id="requester" placeholder="이름 또는 병동/부서 (예: 71병동 김OO)">
+      <input type="text" id="requester" placeholder="이름을 적어주세요 (예: 김OO)">
       <label style="margin-top:12px">부서 / 진료과 <span class="opt">(선택)</span></label>
       <input type="text" id="dept" placeholder="예: 외과계중환자실, 정형외과">
     </div>
@@ -255,8 +257,8 @@ var API_URL = "https://script.google.com/macros/s/AKfycbwIeXSyIRWk00iVxMnBKlH1DE
 
 <script>
 /* ─────────── 기본 상태 ─────────── */
-var STATUSES = ['접수대기','부품대기','수리중','수리완료','수령'];
-var SKEY = {'접수대기':'대기','부품대기':'부품','수리중':'수리','수리완료':'완료','수령':'수령'};
+var STATUSES = ['접수대기','부품대기','수리중(내부)','수리중(외부)','수리완료','수령','폐기'];
+var SKEY = {'접수대기':'대기','부품대기':'부품','수리중(내부)':'내부','수리중(외부)':'외부','수리중':'수리','수리완료':'완료','수령':'수령','폐기':'폐기'};
 var equipment = [], repairs = [], filterNow = '전체';
 var photoBase64 = null, scanner = null, qrLink = '';
 
