@@ -101,8 +101,9 @@ var API_URL = "https://script.google.com/macros/s/AKfycbwIeXSyIRWk00iVxMnBKlH1DE
   .meta{font-size:12px;color:var(--sub);margin-top:4px}
   .symptom{font-size:14px;margin-top:8px;line-height:1.5;white-space:pre-wrap}
   .item img{width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-top:10px;cursor:pointer}
-  .statusSel{margin-top:10px}
-  .statusSel select{padding:10px 12px;font-size:14px}
+  .statusSel{margin-top:10px;display:flex;gap:8px}
+  .statusSel select{flex:1;padding:10px 12px;font-size:14px}
+  .delBtn{flex:0 0 auto;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:0 14px;color:var(--wait);font-size:16px;cursor:pointer}
 
   .refreshBtn{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer;margin-bottom:12px;font-family:inherit}
   .empty{text-align:center;color:var(--sub);font-size:14px;padding:44px 0}
@@ -193,6 +194,8 @@ var API_URL = "https://script.google.com/macros/s/AKfycbwIeXSyIRWk00iVxMnBKlH1DE
     <div class="card">
       <label>④ 요청자</label>
       <input type="text" id="requester" placeholder="이름 또는 병동/부서 (예: 71병동 김OO)">
+      <label style="margin-top:12px">부서 / 진료과 <span class="opt">(선택)</span></label>
+      <input type="text" id="dept" placeholder="예: 외과계중환자실, 정형외과">
     </div>
 
     <button class="submitBtn" id="submitBtn" onclick="submitRepair()">수리 접수하기</button>
@@ -219,6 +222,10 @@ var API_URL = "https://script.google.com/macros/s/AKfycbwIeXSyIRWk00iVxMnBKlH1DE
     <div class="togRow">
       <div><b>새 접수 이메일 알림</b><span>새 수리요청이 오면 의공실 이메일로 알림</span></div>
       <label class="tog"><input type="checkbox" id="alarmTog" onchange="toggleAlarm(this.checked)"><i></i></label>
+    </div>
+    <div class="togRow">
+      <div><b>장비목록 다시 불러오기</b><span>장비목록 시트를 수정한 뒤에 눌러주세요</span></div>
+      <button onclick="refreshEquip()" style="flex:0 0 auto;background:#EDF1F6;border:none;border-radius:10px;padding:10px 16px;font-size:15px;cursor:pointer;font-family:inherit">↻</button>
     </div>
     <button class="modalClose" onclick="closeSettings()">닫기</button>
   </div>
@@ -268,10 +275,18 @@ function showPage(name){
 function loadData(showMsg){
   if(!api()) return;
   if(showMsg) toast('불러오는 중...');
-  fetch(api()+'?key='+encodeURIComponent(getKey())).then(function(r){return r.json()}).then(function(d){
+  // 장비목록은 휴대폰에 저장해두고 하루 1번만 새로 받기 (로딩 속도 개선)
+  var cached = null;
+  try{ cached = JSON.parse(localStorage.getItem('repair_equip')||'null'); }catch(err){}
+  var fresh = cached && cached.t && cached.list && (Date.now() - cached.t < 24*60*60*1000);
+  if(fresh) equipment = cached.list;
+  fetch(api()+'?key='+encodeURIComponent(getKey())+(fresh?'&light=1':'')).then(function(r){return r.json()}).then(function(d){
     if(d && d.authError){ authFail(); return; }
     if(!d.ok) throw new Error(d.error||'');
-    equipment = d.equipment||[];
+    if(d.equipment && d.equipment.length){
+      equipment = d.equipment;
+      try{ localStorage.setItem('repair_equip', JSON.stringify({t:Date.now(), list:equipment})); }catch(err){}
+    }
     repairs = (d.repairs||[]).reverse(); // 최신순
     var alarm = '';
     (d.config||[]).forEach(function(c){ if(c['설정명']==='수리접수알람') alarm = String(c['값']).toUpperCase(); });
@@ -296,7 +311,7 @@ function renderList(){
   var q = (document.getElementById('searchInput').value||'').trim().toLowerCase();
   if(q){
     rows = rows.filter(function(r){
-      return ['기기명','바코드','접수번호','요청자','고장증상','수령자'].some(function(k){
+      return ['기기명','바코드','접수번호','요청자','고장증상','수령자','부서'].some(function(k){
         return String(r[k]||'').toLowerCase().indexOf(q) > -1;
       });
     });
@@ -310,14 +325,14 @@ function renderList(){
     var loc = eq && eq['설치위치'] ? ' · '+eq['설치위치'] : '';
     return '<div class="item s'+k+'">'
       + '<div class="itemTop"><b>'+esc(r['기기명']||'기기명 미상')+(r['바코드']?' <span style="font-weight:500;color:var(--sub);font-size:12.5px">('+esc(r['바코드'])+')</span>':'')+'</b><span class="badge b'+k+'">'+r['진행상태']+'</span></div>'
-      + '<div class="meta">'+esc(r['접수번호'])+' · '+esc(r['접수시간'])+' · '+esc(r['요청자']||'-')+loc+'</div>'
+      + '<div class="meta">'+esc(r['접수번호'])+' · '+esc(r['접수시간'])+' · '+esc(r['요청자']||'-')+(r['부서']?' · '+esc(r['부서']):'')+loc+'</div>'
       + (r['고장증상']?'<div class="symptom">'+esc(r['고장증상'])+'</div>':'')
       + (r['원본링크']?'<div class="meta" style="margin-top:8px">🔗 <a href="'+esc(r['원본링크'])+'" target="_blank" rel="noopener">장비 정보 페이지 열기</a></div>':'')
       + (r['수령자']?'<div class="meta" style="margin-top:6px">✅ 수령: '+esc(r['수령자'])+(r['수령시간']?' ('+esc(r['수령시간'])+')':'')+'</div>':'')
       + (r['사진']?'<img src="'+esc(r['사진'])+'" loading="lazy" onclick="bigPhoto(this.src)" alt="고장 사진">':'')
-      + '<div class="statusSel"><select onchange="changeStatus(\''+esc(r['접수번호'])+'\',this)">'
+      + '<div class="statusSel" style="display:flex;gap:8px"><select style="flex:1" onchange="changeStatus(\''+esc(r['접수번호'])+'\',this)">'
       + STATUSES.map(function(s){return '<option '+(s===r['진행상태']?'selected':'')+'>'+s+'</option>'}).join('')
-      + '</select></div></div>';
+      + '</select><button class="delBtn" onclick="deleteRepair(\''+esc(r['접수번호'])+'\')" aria-label="삭제">🗑</button></div></div>';
   }).join('');
 }
 function setFilter(s){ filterNow=s; renderList(); }
@@ -339,6 +354,17 @@ function changeStatus(id, sel){
       if(r){ r['진행상태']=v; if(v==='수령') r['수령자']=receiver; }
       renderList(); toast(v==='수령' ? receiver+'님 수령 처리했어요' : '"'+v+'" 상태로 변경했어요');
     } else { toast('변경 실패: '+(d.error||'')); loadData(false); }
+  });
+}
+
+/* ─────────── 접수 삭제 ─────────── */
+function deleteRepair(id){
+  if(!window.confirm('이 접수 건을 삭제할까요?\n삭제하면 되돌릴 수 없어요.')) return;
+  post({action:'delete', id:id}).then(function(d){
+    if(d.ok){
+      repairs = repairs.filter(function(r){return r['접수번호']!==id});
+      renderList(); toast('삭제했어요');
+    } else toast('삭제 실패: '+(d.error||''));
   });
 }
 
@@ -461,6 +487,7 @@ function submitRepair(){
   var device = eq ? eq['기기명'] : document.getElementById('deviceInput').value.trim();
   var symptom = document.getElementById('symptom').value.trim();
   var requester = document.getElementById('requester').value.trim();
+  var dept = document.getElementById('dept').value.trim();
 
   if(!device){ toast('바코드를 스캔하거나 기기명을 입력해주세요'); return; }
   if(!symptom){ toast('고장 증상을 입력해주세요'); return; }
@@ -469,8 +496,9 @@ function submitRepair(){
   var btn = document.getElementById('submitBtn');
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span>접수 중...';
   localStorage.setItem('repair_requester', requester);
+  localStorage.setItem('repair_dept', dept);
 
-  post({action:'create', barcode:code, device:device, symptom:symptom, requester:requester, photo:photoBase64, link:qrLink})
+  post({action:'create', barcode:code, device:device, symptom:symptom, requester:requester, dept:dept, photo:photoBase64, link:qrLink})
   .then(function(d){
     btn.disabled=false; btn.textContent='수리 접수하기';
     if(d.ok){
@@ -491,6 +519,11 @@ function toggleAlarm(on){
 }
 function openSettings(){ document.getElementById('settingsModal').classList.add('on'); }
 function closeSettings(){ document.getElementById('settingsModal').classList.remove('on'); }
+function refreshEquip(){
+  localStorage.removeItem('repair_equip');
+  closeSettings();
+  loadData(true);
+}
 
 /* ─────────── 접속코드 ─────────── */
 function getKey(){ return localStorage.getItem('repair_key')||''; }
@@ -536,6 +569,8 @@ function saveSetupUrl(){
   if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
   var saved = localStorage.getItem('repair_requester');
   if(saved) document.getElementById('requester').value = saved;
+  var savedDept = localStorage.getItem('repair_dept');
+  if(savedDept) document.getElementById('dept').value = savedDept;
   if(!api()){ document.getElementById('setupOverlay').style.display='block'; return; }
   if(!getKey()){ showKeyOverlay(); return; }
   loadData(false);
