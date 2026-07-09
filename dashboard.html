@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>수리현황 대시보드</title>
+<style>
+  :root{
+    --navy:#33506E; --steel:#5B7C99; --bg:#EEF2F6; --card:#FFFFFF;
+    --border:#DCE3EB; --ink:#2E3440; --sub:#7A8494;
+    --wait:#B25454; --part:#B08A32; --doing:#4A6E92; --ext:#5AA0A0; --done:#78876B; --recv:#8B95A5; --scrap:#3A3A3A;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Pretendard',-apple-system,'Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);padding:24px}
+
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+  header h1{font-size:26px;font-weight:800;color:var(--navy);letter-spacing:-.5px}
+  header h1 small{display:block;font-size:13px;font-weight:400;color:var(--sub);margin-top:3px}
+  .clock{text-align:right}
+  .clock .t{font-size:24px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+  .clock .upd{font-size:12px;color:var(--sub);margin-top:2px}
+  #refreshBtn{margin-top:8px;background:var(--navy);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+
+  .alert{background:#FBECEC;border:1px solid #E4C4C4;border-radius:12px;padding:14px 18px;margin-bottom:18px;font-size:16px;color:#8A3B3B;font-weight:600}
+  .alert b{color:#6E2A2A}
+
+  .periodBar{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;margin-bottom:18px;display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+  .periodBtns{display:flex;gap:8px}
+  .pbtn{background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:8px 18px;font-size:14px;font-weight:600;color:var(--sub);cursor:pointer;font-family:inherit}
+  .pbtn.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .periodPickers{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .periodPickers select,.periodPickers input[type=date]{border:1.5px solid var(--border);border-radius:9px;padding:8px 10px;font-size:14px;font-family:inherit;color:var(--ink)}
+  .range{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--sub)}
+  .periodLabel{margin-left:auto;font-size:14px;font-weight:700;color:var(--navy)}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 22px;border-left:6px solid var(--navy)}
+  .stat .n{font-size:44px;font-weight:800;line-height:1}
+  .stat .l{font-size:15px;color:var(--sub);margin-top:6px}
+  .stat.total{border-left-color:var(--navy)}
+  .stat.wait{border-left-color:var(--wait)}
+  .stat.doing{border-left-color:var(--doing)}
+  .stat.done{border-left-color:var(--done)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 22px}
+  .card.wide{grid-column:1 / -1}
+  .card h2{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--ink)}
+  .card h2 span{font-weight:400;color:var(--sub);font-size:13px}
+
+  .barRow{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .barRow .lab{flex:0 0 130px;font-size:14px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .barRow .track{flex:1;background:#EDF1F6;border-radius:8px;height:26px;overflow:hidden}
+  .barRow .fill{height:100%;border-radius:8px;min-width:3px;transition:width .5s}
+  .barRow .val{flex:0 0 40px;font-size:15px;font-weight:700;text-align:left}
+
+  .trend{display:flex;align-items:flex-end;gap:8px;height:180px;padding-top:10px}
+  .tcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px}
+  .tcol .tb{width:100%;max-width:40px;background:var(--steel);border-radius:6px 6px 0 0;min-height:3px;transition:height .5s}
+  .tcol .td{font-size:11px;color:var(--sub)}
+  .tcol .tn{font-size:13px;font-weight:700}
+
+  #setup{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;z-index:99}
+  #setup .box{background:#fff;border:1px solid var(--border);border-radius:16px;padding:32px;max-width:520px;width:100%}
+  #setup h2{font-size:20px;color:var(--navy);margin-bottom:12px}
+  #setup p{font-size:14px;line-height:1.7;color:var(--ink);margin-bottom:16px}
+  #setup input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px;font-size:15px;margin-bottom:10px}
+  #setup button{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer}
+  .loading{text-align:center;color:var(--sub);padding:60px;font-size:16px}
+</style>
+</head>
+<body>
+
+<div id="setup">
+  <div class="box">
+    <h2>대시보드 연결</h2>
+    <p>수리접수 앱과 동일한 <b>웹 앱 URL</b>과 <b>접속코드</b>를 입력하면, 이 화면이 수리현황을 실시간으로 보여줍니다. (한 번 입력하면 이 컴퓨터에서는 계속 유지됩니다.)</p>
+    <input type="text" id="setupUrl" placeholder="웹 앱 URL (https://script.google.com/.../exec)">
+    <input type="text" id="setupKey" placeholder="접속코드">
+    <button onclick="saveSetup()">연결하기</button>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <header>
+    <h1>의료기기 수리현황 <small>간호부 · 의공실 실시간 대시보드</small></h1>
+    <div class="clock"><div class="t" id="clock">--:--</div><div class="upd" id="updated">불러오는 중...</div><button id="refreshBtn" onclick="load()">↻ 지금 새로고침</button></div>
+  </header>
+  <div id="alertBox"></div>
+
+  <div class="periodBar">
+    <div class="periodBtns">
+      <button class="pbtn on" data-p="today" onclick="setPeriod('today')">오늘</button>
+      <button class="pbtn" data-p="week" onclick="setPeriod('week')">이번주</button>
+      <button class="pbtn" data-p="month" onclick="setPeriod('month')">이번달</button>
+      <button class="pbtn" data-p="all" onclick="setPeriod('all')">전체</button>
+    </div>
+    <div class="periodPickers">
+      <select id="monthSel" onchange="setMonth(this.value)"><option value="">월 선택</option></select>
+      <span class="range">
+        <input type="date" id="dFrom" onchange="setRange()">
+        <span>~</span>
+        <input type="date" id="dTo" onchange="setRange()">
+      </span>
+    </div>
+    <div class="periodLabel" id="periodLabel"></div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+  <div class="grid">
+    <div class="card"><h2>진행상태별 건수</h2><div id="statusBars"></div></div>
+    <div class="card"><h2>부서별 접수 현황 <span>(상위 8개)</span></h2><div id="deptBars"></div></div>
+    <div class="card wide"><h2 id="trendTitle">접수 추이</h2><div id="trend"></div></div>
+  </div>
+</div>
+
+<script>
+var STATUSES = ['접수대기','부품대기','수리중(내부)','수리중(외부)','수리완료','수령','폐기'];
+var COLOR = {'접수대기':'#B25454','부품대기':'#B08A32','수리중(내부)':'#4A6E92','수리중(외부)':'#5AA0A0','수리완료':'#78876B','수령':'#8B95A5','폐기':'#3A3A3A'};
+var OPEN = ['접수대기','부품대기','수리중(내부)','수리중(외부)'];
+
+function api(){ return localStorage.getItem('dash_url')||''; }
+function key(){ return localStorage.getItem('dash_key')||''; }
+
+function saveSetup(){
+  var u = document.getElementById('setupUrl').value.trim();
+  var k = document.getElementById('setupKey').value.trim();
+  if(u.indexOf('https://script.google.com/')!==0){ alert('올바른 웹 앱 URL이 아니에요'); return; }
+  localStorage.setItem('dash_url', u); localStorage.setItem('dash_key', k);
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').style.display='block';
+  load();
+}
+
+function load(){
+  fetch(api()+'?key='+encodeURIComponent(key())+'&all=1').then(function(r){return r.json()}).then(function(d){
+    if(d && d.authError){ alert('접속코드가 올바르지 않아요'); localStorage.removeItem('dash_key'); location.reload(); return; }
+    if(!d.ok) throw new Error();
+    ALL = (d.repairs||[]);
+    buildMonthOptions();
+    render();
+    var now = new Date();
+    document.getElementById('updated').textContent = '업데이트: ' + now.toLocaleTimeString('ko-KR');
+  }).catch(function(){ document.getElementById('updated').textContent = '불러오기 실패 (인터넷/URL 확인)'; });
+}
+
+var ALL = [];            // 전체 수리내역
+var period = 'today';    // today / week / month / all / ym / range
+var ymValue = '';        // 선택된 월 (예: 2026-07)
+var rangeFrom = '', rangeTo = '';
+
+/* 기간 버튼 (오늘/이번주/이번달/전체) */
+function setPeriod(p){
+  period = p; ymValue=''; rangeFrom=''; rangeTo='';
+  document.getElementById('monthSel').value='';
+  document.getElementById('dFrom').value=''; document.getElementById('dTo').value='';
+  markBtn(p); render();
+}
+/* 월 선택 */
+function setMonth(v){
+  if(!v){ return; }
+  period='ym'; ymValue=v; rangeFrom=''; rangeTo='';
+  document.getElementById('dFrom').value=''; document.getElementById('dTo').value='';
+  markBtn(null); render();
+}
+/* 시작일~종료일 */
+function setRange(){
+  var f=document.getElementById('dFrom').value, t=document.getElementById('dTo').value;
+  if(!f && !t) return;
+  period='range'; rangeFrom=f; rangeTo=t; ymValue='';
+  document.getElementById('monthSel').value='';
+  markBtn(null); render();
+}
+function markBtn(p){
+  document.querySelectorAll('.pbtn').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-p')===p); });
+}
+
+/* 월 선택 드롭다운을 데이터에 있는 월들로 채우기 */
+function buildMonthOptions(){
+  var months = {};
+  ALL.forEach(function(r){ var t=pt(r['접수시간']); if(t){ var d=new Date(t); months[d.getFullYear()+'-'+z(d.getMonth()+1)]=1; } });
+  var keys = Object.keys(months).sort().reverse();
+  var sel = document.getElementById('monthSel');
+  sel.innerHTML = '<option value="">월 선택</option>' + keys.map(function(k){return '<option value="'+k+'">'+k+'</option>'}).join('');
+}
+function z(n){ return n<10?'0'+n:''+n; }
+
+/* 현재 기간에 맞는 데이터만 걸러내기 */
+function filtered(){
+  var now=new Date(), s, e;
+  if(period==='all') return {list:ALL.slice(), label:'전체 기간'};
+  if(period==='today'){ s=new Date(); s.setHours(0,0,0,0); e=s.getTime()+86400000; return byRange(s.getTime(),e,'오늘'); }
+  if(period==='week'){ s=new Date(); s.setHours(0,0,0,0); s.setDate(s.getDate()-s.getDay()); return byRange(s.getTime(), s.getTime()+7*86400000, '이번주'); }
+  if(period==='month'){ s=new Date(now.getFullYear(),now.getMonth(),1); e=new Date(now.getFullYear(),now.getMonth()+1,1); return byRange(s.getTime(),e.getTime(),'이번달'); }
+  if(period==='ym'){ var p=ymValue.split('-'); s=new Date(+p[0],+p[1]-1,1); e=new Date(+p[0],+p[1],1); return byRange(s.getTime(),e.getTime(),ymValue); }
+  if(period==='range'){
+    var sf = rangeFrom? new Date(rangeFrom+'T00:00:00').getTime() : -Infinity;
+    var et = rangeTo? new Date(rangeTo+'T00:00:00').getTime()+86400000 : Infinity;
+    var lab = (rangeFrom||'처음')+' ~ '+(rangeTo||'끝');
+    return byRange(sf, et, lab);
+  }
+  return {list:ALL.slice(), label:'전체'};
+}
+function byRange(s, e, label){
+  return { list: ALL.filter(function(r){ var t=pt(r['접수시간']); return t && t>=s && t<e; }), label:label };
+}
+
+function render(){
+  var f = filtered();
+  var list = f.list;
+  document.getElementById('periodLabel').textContent = f.label + ' · ' + list.length + '건';
+  var total = list.length;
+  var waiting = list.filter(function(r){return r['진행상태']==='접수대기'}).length;
+  var doing = list.filter(function(r){return OPEN.indexOf(r['진행상태'])>-1}).length;
+  var done = list.filter(function(r){return r['진행상태']==='수리완료'||r['진행상태']==='수령'}).length;
+  document.getElementById('stats').innerHTML =
+    stat('total','전체 접수',total)+stat('wait','접수대기',waiting)+stat('doing','처리중',doing)+stat('done','완료·수령',done);
+
+  var now = Date.now();
+  var stale = ALL.filter(function(r){
+    if(OPEN.indexOf(r['진행상태'])===-1) return false;
+    var t = pt(r['접수시간']); return t && (now-t > 3*24*60*60*1000);
+  });
+  var ab = document.getElementById('alertBox');
+  if(stale.length){
+    var oldest = stale.map(function(r){return da(r['접수시간'])}).sort(function(a,b){return b-a})[0];
+    ab.innerHTML = '<div class="alert">⚠ <b>미처리 '+stale.length+'건</b> — 접수 후 3일 이상 지났는데 아직 처리중입니다. (전체 기준 · 가장 오래된 건: '+oldest+'일 경과)</div>';
+  } else ab.innerHTML = '';
+
+  bars('statusBars', STATUSES.map(function(s){
+    return {label:s, value:list.filter(function(r){return r['진행상태']===s}).length, color:COLOR[s]};
+  }).filter(function(x){return x.value>0}), total);
+
+  var dm = {};
+  list.forEach(function(r){ var d=(r['부서']||'').trim()||'(미입력)'; dm[d]=(dm[d]||0)+1; });
+  var da2 = Object.keys(dm).map(function(k){return {label:k,value:dm[k],color:'#5B7C99'}})
+    .sort(function(a,b){return b.value-a.value}).slice(0,8);
+  bars('deptBars', da2, da2.length?da2[0].value:1);
+
+  trend(list);
+}
+
+function stat(c,l,n){ return '<div class="stat '+c+'"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'; }
+
+function bars(id, arr, maxRef){
+  var el = document.getElementById(id);
+  if(!arr.length){ el.innerHTML='<div style="color:var(--sub);padding:16px;text-align:center">데이터 없음</div>'; return; }
+  var max = Math.max(maxRef||1,1);
+  el.innerHTML = arr.map(function(x){
+    var pct = Math.round(x.value/max*100);
+    return '<div class="barRow"><div class="lab" title="'+esc(x.label)+'">'+esc(x.label)+'</div>'
+      +'<div class="track"><div class="fill" style="width:'+pct+'%;background:'+x.color+'"></div></div>'
+      +'<div class="val">'+x.value+'</div></div>';
+  }).join('');
+}
+
+function trend(list){
+  var title = document.getElementById('trendTitle');
+  // 전체·월(2개월 이상)은 월별, 그 외(오늘·주·달·짧은 범위)는 일별
+  var useMonthly = (period==='all');
+  if(period==='range'){
+    var span = (rangeFrom&&rangeTo)? (new Date(rangeTo)-new Date(rangeFrom))/86400000 : 999;
+    useMonthly = span > 62;
+  }
+
+  if(useMonthly){
+    // 데이터에 있는 월 전체를 월별로
+    var mmap = {};
+    list.forEach(function(r){ var t=pt(r['접수시간']); if(t){ var d=new Date(t); mmap[d.getFullYear()+'-'+z(d.getMonth()+1)]=(mmap[d.getFullYear()+'-'+z(d.getMonth()+1)]||0)+1; } });
+    var keys = Object.keys(mmap).sort();
+    if(!keys.length){ document.getElementById('trend').innerHTML='<div style="color:var(--sub);padding:20px;text-align:center">데이터 없음</div>'; title.textContent='월별 접수 추이'; return; }
+    var max = Math.max.apply(null, keys.map(function(k){return mmap[k]}).concat([1]));
+    title.textContent = '월별 접수 추이';
+    document.getElementById('trend').innerHTML = '<div class="trend">'+keys.map(function(k){
+      var h=Math.round(mmap[k]/max*150);
+      return '<div class="tcol"><div class="tn">'+mmap[k]+'</div><div class="tb" style="height:'+h+'px"></div><div class="td">'+k.substring(2)+'</div></div>';
+    }).join('')+'</div>';
+    return;
+  }
+
+  // 일별: 선택 기간의 날짜 범위, 없으면 최근 14일
+  var f = filtered();
+  var start, end;
+  if(period==='today'){ start=new Date(); start.setHours(0,0,0,0); end=new Date(start.getTime()+86400000); }
+  else if(period==='week'){ start=new Date(); start.setHours(0,0,0,0); start.setDate(start.getDate()-start.getDay()); end=new Date(start.getTime()+7*86400000); }
+  else if(period==='month'){ var n=new Date(); start=new Date(n.getFullYear(),n.getMonth(),1); end=new Date(n.getFullYear(),n.getMonth()+1,1); }
+  else if(period==='ym'){ var p=ymValue.split('-'); start=new Date(+p[0],+p[1]-1,1); end=new Date(+p[0],+p[1],1); }
+  else if(period==='range' && rangeFrom){ start=new Date(rangeFrom+'T00:00:00'); end=rangeTo? new Date(new Date(rangeTo+'T00:00:00').getTime()+86400000) : new Date(); }
+  else { start=new Date(); start.setHours(0,0,0,0); start.setDate(start.getDate()-13); end=new Date(start.getTime()+14*86400000); }
+
+  var days=[]; var cur=new Date(start);
+  while(cur.getTime()<end.getTime() && days.length<62){ days.push(new Date(cur)); cur.setDate(cur.getDate()+1); }
+  if(!days.length){ days.push(new Date(start)); }
+  var counts = days.map(function(d){ var nx=d.getTime()+86400000;
+    return list.filter(function(r){ var t=pt(r['접수시간']); return t&&t>=d.getTime()&&t<nx; }).length; });
+  var max2 = Math.max.apply(null, counts.concat([1]));
+  title.textContent = '일별 접수 추이';
+  document.getElementById('trend').innerHTML = '<div class="trend">'+days.map(function(d,i){
+    var h=Math.round(counts[i]/max2*150); var md=(d.getMonth()+1)+'/'+d.getDate();
+    return '<div class="tcol"><div class="tn">'+(counts[i]||'')+'</div><div class="tb" style="height:'+h+'px"></div><div class="td">'+md+'</div></div>';
+  }).join('')+'</div>';
+}
+
+function pt(s){ if(!s) return null; var t=Date.parse(String(s).replace(' ','T')); if(!isNaN(t))return t; t=Date.parse(s); return isNaN(t)?null:t; }
+function da(s){ var t=pt(s); return t?Math.floor((Date.now()-t)/86400000):0; }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function tick(){ document.getElementById('clock').textContent = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); }
+
+(function init(){
+  if(api()){ document.getElementById('setup').style.display='none'; document.getElementById('app').style.display='block'; load(); }
+  tick(); setInterval(tick, 1000);
+  setInterval(load, 30*60000); // 30분마다 자동 새로고침
+})();
+</script>
+</body>
+</html>
