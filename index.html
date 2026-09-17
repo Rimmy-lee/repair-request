@@ -20,7 +20,7 @@
    아래 따옴표 안에 붙여넣어 주세요.
    예) var API_URL = "https://script.google.com/macros/s/AKfy.../exec";
 ═══════════════════════════════════════════════════════════ */
-var API_URL = "https://script.google.com/macros/s/AKfycbwIeXSyIRWk00iVxMnBKlH1DE7vjt2slPPfw4KWMaKOvYGjgFOwWnWQm2jdXaZzg1719Q/exec";
+var API_URL = "https://script.google.com/macros/s/AKfycbyLlrQL88AKOmK_R4d7GnqyQHlMCH_MK5kbUGEyvHkyQGwv0UFlZvmqXEA8y6tySqw0/exec";
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
@@ -171,7 +171,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycbwIeXSyIRWk00iVxMnBKlH1DE
 <body>
 
 <header>
-  <h1>의료기기 수리접수<small>간호부 · 의공실 진행관리</small></h1>
+  <h1>의료기기 수리접수<small>고려대학교구로병원 관리팀</small></h1>
   <button class="gear" onclick="openSettings()" aria-label="설정">⚙</button>
 </header>
 
@@ -365,7 +365,7 @@ function renderList(){
   var q = (document.getElementById('searchInput').value||'').trim().toLowerCase();
   if(q){
     rows = rows.filter(function(r){
-      return ['기기명','바코드','접수번호','요청자','고장증상','수령자','부서'].some(function(k){
+      return ['기기명','바코드','접수번호','요청자','고장증상','수령자','부서','수리내용'].some(function(k){
         return String(r[k]||'').toLowerCase().indexOf(q) > -1;
       });
     });
@@ -382,6 +382,7 @@ function renderList(){
       + '<div class="meta">'+esc(r['접수번호'])+' · '+esc(r['접수시간'])+' · '+esc(r['요청자']||'-')+(r['부서']?' · '+esc(r['부서']):'')+loc+'</div>'
       + (r['고장증상']?'<div class="symptom">'+esc(r['고장증상'])+'</div>':'')
       + (r['원본링크']?'<div class="meta" style="margin-top:8px">🔗 <a href="'+esc(r['원본링크'])+'" target="_blank" rel="noopener">장비 정보 페이지 열기</a></div>':'')
+      + (r['수리내용']?'<div class="meta" style="margin-top:6px">🔧 수리내용: '+esc(r['수리내용'])+'</div>':'')
       + (r['수령자']?'<div class="meta" style="margin-top:6px">✅ 수령: '+esc(r['수령자'])+(r['수령시간']?' ('+esc(r['수령시간'])+')':'')+'</div>':'')
       + (r['사진']?'<img src="'+esc(r['사진'])+'" loading="lazy" onclick="bigPhoto(this.src)" alt="고장 사진">':'')
       + '<div class="statusSel" style="display:flex;gap:8px"><select style="flex:1" onchange="changeStatus(\''+esc(r['접수번호'])+'\',this)">'
@@ -395,18 +396,26 @@ function bigPhoto(src){ document.getElementById('photoModalImg').src=src; docume
 /* ─────────── 진행상태 변경 ─────────── */
 function changeStatus(id, sel){
   var v = sel.value;
-  var receiver = '';
+  var receiver = '', note = '';
   if(v === '수령'){
     receiver = (window.prompt('찾아가시는 분의 이름을 적어주세요 (예: 71병동 김OO)') || '').trim();
     if(!receiver){ toast('이름을 입력해야 수령 처리가 돼요'); renderList(); return; }
   }
+  if(v === '수리완료'){
+    var prev = (repairs.find(function(x){return x['접수번호']===id})||{})['수리내용'] || '';
+    var input = window.prompt('수리 내용을 적어주세요 (예: 전원부 기판 교체)', prev);
+    if(input === null){ renderList(); return; }   // 취소하면 변경 안 함
+    note = input.trim();
+    if(!note){ toast('수리 내용을 입력해야 완료 처리가 돼요'); renderList(); return; }
+  }
   sel.disabled = true;
-  post({action:'status', id:id, status:v, receiver:receiver}).then(function(d){
+  post({action:'status', id:id, status:v, receiver:receiver, note:note}).then(function(d){
     sel.disabled = false;
     if(d.ok){
       var r = repairs.find(function(x){return x['접수번호']===id});
-      if(r){ r['진행상태']=v; if(v==='수령') r['수령자']=receiver; }
-      renderList(); toast(v==='수령' ? receiver+'님 수령 처리했어요' : '"'+v+'" 상태로 변경했어요');
+      if(r){ r['진행상태']=v; if(v==='수령') r['수령자']=receiver; if(v==='수리완료') r['수리내용']=note; }
+      renderList();
+      toast(v==='수령' ? receiver+'님 수령 처리했어요' : '"'+v+'" 상태로 변경했어요');
     } else { toast('변경 실패: '+(d.error||'')); loadData(false); }
   });
 }
